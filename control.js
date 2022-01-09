@@ -1,51 +1,32 @@
 'use strict';
-import { findAllServers } from "util.js";
-import { newZombie } from 'zombie.js';
-import * as logger from "log.js";
+import { findAllServers } from "./util.js";
+import { Zombie, newZombie } from './zombie.js';
+import * as logger from "./log.js";
 
-/**
- * @typedef {object} serverInfo
- * @property {NS} ns
- * @property {string} hostname
- * @property {string} grow
- * @property {number} memory
- * @property {number} level
- * @property {number} ports
- * @property {number} maxMoney
- * @property {number} hackEffect
- * @property {string} effect
- * @property {number} hackChance
- * @property {string} chance
- * @property {number} security
- * @property {string} money
- * @property {Server} server
- * @property {number} usedMemory
- * @property {number} availableMemory
- * @property {boolean} root
- * @property {boolean} nuke
- * @property {number} contracts
- * @property {number} availableMoney
- * @property {number} currentRating
- * @property {number} rating
- * @property {number} currentRating
- * @property {boolean} shouldGrow
- * @property {number} maxHackThreads
- * @property {number} currentSecurity
- * @function updateStats
- */
-
-/** @param {NS} ns **/
+/** 
+ * Main control script, scans all potential servers at startup, selects 
+ * the best one to hack based on calculated statics and then starts up hacks
+ * on every available server.
+ * @see {Zombie}
+ * @see {findAllServers}
+ * @see {logger}
+ * 	
+ * TODO: check for new discovered servers runner servers during each loop
+ * TODO: auto-reselect target server based on better statistics
+ * @param {NS} ns 
+ *
+ **/
 export async function main(ns) {
 	logger.initialize(ns);
 	ns.disableLog("sleep");
 	ns.disableLog("exec");
-	// const servers = findServers(ns, -1)
-	// 	.map(server => getServerDetails(ns, server))
-	// 	.filter(server => server.root);
+
 	const servers = findAllServers(ns)
 		.map(server => newZombie(ns, server))
 		.filter(zombie => zombie.root)
 		.sort((a, b) => b.rating - a.rating);
+	
+	// target is first server in the array after a sort
 	const [target] = servers;
 
 	// Kill all scripts running on remote servers
@@ -58,22 +39,24 @@ export async function main(ns) {
 }
 
 /**
- * @param {serverInfo} server
+ * @param {Zombie} server
  */
 async function destroy(server) {
 	return Promise.resolve(await server.ns.killall(server.hostname));
 }
 
 /**
- * @param {serverInfo[]} servers
+ * @param {Zombie[]} servers
  */
 function countTotalAvailableThreads(servers) {
-	return servers.map(zombie => zombie.maxHackThreads).reduce((total, num) => total + num);
+	return servers
+		.map(zombie => zombie.maxHackThreads)
+		.reduce((total, num) => total + num);
 }
 
 /**
- * @param {serverInfo[]} servers
- * @param {serverInfo} target
+ * @param {Zombie[]} servers
+ * @param {Zombie} target
  * @return {number[]} runningGrow, runningHack, runningWeaken
  */
 function getRunningScriptCounts(servers, target) {
@@ -105,8 +88,8 @@ function getRunningScriptCounts(servers, target) {
 
 /**
  * @param {NS} ns
- * @param {serverInfo[]} servers
- * @param {serverInfo} target
+ * @param {Zombie[]} servers
+ * @param {Zombie} target
  * @param {boolean} setup
  */
 async function hackTarget(ns, servers, target, setup = true) {
@@ -165,8 +148,6 @@ async function hackTarget(ns, servers, target, setup = true) {
 		}
 
 		await ns.sleep(1000);
-		// TODO: check for new discovered servers
-		// TODO: auto-reselect target based on better statistics
 		if (setup && target.isAtMinSecurity() && target.isAtMaxMoney()) {
 			for (const zombie of servers) {
 				await destroy(zombie);

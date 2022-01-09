@@ -1,37 +1,6 @@
 'use strict';
 
-import { formatMoney } from 'util.js';
-/**
- * @typedef {object} serverInfo
- * @property {NS} ns
- * @property {string} hostname
- * @property {string} growth
- * @property {number} memory
- * @property {number} level
- * @property {number} ports
- * @property {number} maxMoney
- * @property {number} hackEffect
- * @property {string} effect
- * @property {number} hackChance
- * @property {string} chance
- * @property {number} security
- * @property {string} money
- * @property {Server} server
- * @property {number} usedMemory
- * @property {number} availableMemory
- * @property {boolean} root
- * @property {boolean} canRoot
- * @property {number} contracts
- * @property {number} availableMoney
- * @property {number} currentRating
- * @property {number} rating
- * @property {number} currentRating
- * @property {boolean} shouldGrow
- * @property {number} maxHackThreads
- * @property {number} currentSecurity
- * @function updateStats
- */
-
+import { formatMoney } from './util.js';
 
 /**
  * @param {NS} ns
@@ -43,13 +12,13 @@ export function newZombie(ns, serverName) {
 };
 
 /**
- * Class representing a server
+ * Class wrapping the NS server object
+ * @see {Server} 
  */
 export class Zombie {
 	/**
 	 * @param {Server} server
 	 * @param {NS} ns
-	 * @return {serverInfo}
 	 */
 	constructor(server, ns) {
 		this.ns = ns;
