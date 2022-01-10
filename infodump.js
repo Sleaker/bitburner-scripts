@@ -1,4 +1,7 @@
-'use strict';
+/**
+ * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ */
+
 import * as logger from './log.js';
 import { findServers } from './util.js';
 import { Zombie } from './zombie.js';

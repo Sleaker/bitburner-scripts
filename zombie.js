@@ -1,4 +1,7 @@
-'use strict';
+/**
+ * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ * @typedef {import('./types/NetscriptDefinitions').Server} Server
+ */
 
 import { formatMoney } from './util.js';
 
@@ -12,8 +15,7 @@ export function newZombie(ns, serverName) {
 };
 
 /**
- * Class wrapping the NS server object
- * @see {Server} 
+ * Class wrapping the @see {Server} object
  */
 export class Zombie {
 	/**

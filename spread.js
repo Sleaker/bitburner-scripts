@@ -1,3 +1,6 @@
+/**
+ * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ */
 import { findServers } from "util.js";
 
 const NUM_AVAIL_PORT_EXPLOITS = 5;

@@ -1,4 +1,8 @@
 /**
+ * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ */
+
+/**
  * @param {number} money Amount to format
  * @return {string} formatted amount
  */

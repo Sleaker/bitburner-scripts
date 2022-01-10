@@ -1,4 +1,7 @@
-'use strict';
+/**
+ * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ */
+
 import { findAllServers } from "./util.js";
 import { Zombie, newZombie } from './zombie.js';
 import * as logger from "./log.js";
@@ -12,9 +15,10 @@ import * as logger from "./log.js";
  * @see {logger}
  * 	
  * TODO: check for new discovered servers runner servers during each loop
- * TODO: auto-reselect target server based on better statistics
- * @param {NS} ns 
+ * TODO: auto-reselect target server based on access to new servers
+ * TODO: don't filter "home" from list of servers that can have threads running
  *
+ * @param {NS} ns
  **/
 export async function main(ns) {
 	logger.initialize(ns);
@@ -30,12 +34,13 @@ export async function main(ns) {
 	const [target] = servers;
 
 	// Kill all scripts running on remote servers
-	for (const zombie of servers) {
+	const runners = servers.filter(zombie => zombie.memory > 0);
+	for (const zombie of runners) {
 		await destroy(zombie)
 			.then(() => zombie.uploadFiles(["weaken.js", "hack.js", "grow.js"]));
 	}
-	await hackTarget(ns, servers, target)
-		.then(() => hackTarget(ns, servers, target, false));
+	await hackTarget(ns, runners, target)
+		.then(() => hackTarget(ns, runners, target, false));
 }
 
 /**
@@ -101,9 +106,9 @@ async function hackTarget(ns, servers, target, setup = true) {
 
 		// ns.print("Running | Grow: " + runningGrow + " | Hack: " + runningHack + " | Weaken: " + runningWeaken);
 		logger.debug("Running | Grow: %(grow)s | Hack: %(hack)s | Weaken: %(weak)s", { grow: runningGrow, hack: runningHack, weak: runningWeaken });
-		const growRate = target.shouldGrow ? (setup ? .8 : .57) : 0;
+		const growRate = target.shouldGrow ? (setup ? .9 : .84) : 0;
 		let growThreads = Math.floor(maxThreads * growRate) - runningGrow;
-		const hackRate = setup ? 0 : .36;
+		const hackRate = setup ? 0 : .09;
 		let hackThreads = Math.floor(maxThreads * hackRate) - runningHack;
 		// ns.print("Wanted grow threads: " + growThreads);
 		for (const zombie of servers) {
@@ -115,34 +120,36 @@ async function hackTarget(ns, servers, target, setup = true) {
 
 			let toGrow = Math.min(availableRunners, growThreads);
 			logger.debug("Calcs: new Grow: %s", toGrow);
-			if (toGrow > 0) {
+			// TODO: handle additional grow scripts better
+			if (toGrow > 0 && !zombie.isScriptRunning("grow.js")) {
 				logger.debug("Starting new grow exec on %s", zombie.hostname);
 				ns.exec("grow.js", zombie.hostname, toGrow, target.hostname);
 				
-				await ns.sleep(1);
-				// logger.info("%j", {logs: zombie.getRunningScriptLogs(target, "grow.js"), running: zombie.isScriptRunning("grow.js")});
+				await ns.sleep(5);
 				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "grow.js")[0]);
 				availableRunners -= toGrow;
 				growThreads -= toGrow;
 			}
 			let toHack = Math.min(availableRunners, hackThreads);
 			
-			if (toHack > 0) {
+			// TODO: handle additional hack scripts better
+			if (toHack > 0 && !zombie.isScriptRunning("hack.js")) {
+				await ns.sleep(100)
 				logger.debug("Starting new hack exec on %s", zombie.hostname);
 				ns.exec("hack.js", zombie.hostname, toHack, target.hostname);
 				
-				await ns.sleep(1);
+				await ns.sleep(5);
 				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "grow.js")[0]);
 				availableRunners -= toHack;
 				growThreads -= toHack;
 			}
 	
-			if (availableRunners > 0) {
+			// TODO: handle additional weaken scripts better
+			if (availableRunners > 0 && !zombie.isScriptRunning("weaken.js")) {
 				logger.debug("Starting new weaken exec on %s", zombie.hostname);
 				ns.exec("weaken.js", zombie.hostname, availableRunners, target.hostname);
 
-				await ns.sleep(1);
-				// logger.info("%j", zombie.getRunningScriptLogs(target, "weaken.js"));
+				await ns.sleep(5);
 				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "weaken.js")[0]);
 			}
 		}

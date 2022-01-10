@@ -1,7 +1,10 @@
 /**
- * @type {NS}
+ * @type {import('./types/NetscriptDefinitions').NS}
  */
 var loggingContext;
+/** 
+ * @type {boolean} 
+ */
 var logDebugMode;
 
 /**
@@ -38,7 +41,7 @@ export function info(format, values) {
 
 /** 
  * @param {string} format
- * @param {any} values
+ * @param {any[]} values
  **/
 export function warn(format, values) {
 	loggingContext.tprintf("WARNING| " + format, values);

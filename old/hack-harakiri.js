@@ -1,4 +1,4 @@
-/** @param {NS} ns **/
+/** @param {import('./types/NetscriptDefinitions').NS} ns **/
 export async function main(ns) {
 	const [threads] = ns.args;
 	const target = "harakiri-sushi";

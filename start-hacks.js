@@ -1,3 +1,6 @@
+/**
+ * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ */
 import { findServers } from "infodump.js";
 
 /** @param {NS} ns **/
