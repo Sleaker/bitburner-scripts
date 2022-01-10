@@ -1,10 +1,8 @@
 'use strict';
-import * as logger from "log.js";
-import { findServers } from "util.js";
-import { Zombie } from 'zombie.js';
-/**
- * @typedef {import('zombie.js').Zombie} Zombie
- */
+import * as logger from './log.js';
+import { findServers } from './util.js';
+import { Zombie } from './zombie.js';
+
 
 const INFO_FORMAT = "%(hostname)-18s | %(contracts)4s | %(level)5s | %(canRoot)5s | %(root)5s | %(ports)5s | %(money)7s | %(growth)6s | %(effect)6s | %(weak)5s | %(chance)6s | %(rating)6s | %(security)4s";
 const SERVER_HEADER = {
