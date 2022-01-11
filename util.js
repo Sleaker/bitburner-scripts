@@ -1,70 +1,48 @@
+"use strict";
+import { Zombie } from './zombie.js';
 /**
  * @typedef {import('./types/NetscriptDefinitions').NS} NS
  */
 
 /**
- * @param {number} money Amount to format
- * @return {string} formatted amount
- */
-export function formatMoney(money) {
-	const sign = [
-		{ v: 1e3, s: "K" },
-		{ v: 1e6, s: "M" },
-		{ v: 1e9, s: "B" },
-		{ v: 1e12, s: "T" },
-		{ v: 1e15, s: "Q" }
-	]
-	let index;
-	for (index = sign.length - 1; index > 0; index--) {
-		if (money >= sign[index].v) {
-			break;
-		}
-	}
-	return (money / sign[index].v).toFixed(2) + sign[index].s;
-}
-
-/**
- * @param {NS} ns
- * @return {string[]} list of all servers up to the given depth starting from Home
- */
-export function findAllServers(ns) {
-	return doScan(ns, "home", "home", -1);
-}
-
-/**
- * @param {NS} ns
- * @param {number} depth
- * @return {string[]} list of all servers up to the given depth starting from Home
- */
-export function findServers(ns, depth) {
-	return doScan(ns, "home", "home", depth);
-}
-
-/**
+ * Performs a BFS from "home" server walking the tree up to the given depth, or all servers
+ * if no depth is given
+ * 
  * @param {NS} ns
  * @param {string} parentServer - The starting point
  * @param {string} server
  * @param {number} depth - how deep to walk
- * @return {string[]} list of all servers up to the given depth
+ * @return {Zombie[]} list of all servers up to the given depth
  */
-function doScan(ns, parentServer, server, depth) {
-	let neighbors = getNonParentNeighbors(ns, parentServer, server);
-	if (neighbors.size == 0) {
-		return neighbors;
+export function findServers(ns, depth) {
+	let q = [ new Zombie(ns.getServer("home"), ns) ];
+	let found = [];
+	while(q.length > 0) {
+		const nextItem = q.shift();
+		if (nextItem.depth > depth && depth > 0) {
+			break;
+		}
+		
+		let children = getNonParentNeighbors(ns, nextItem.parent, nextItem.hostname, nextItem.depth + 1);
+		for (const child of children) {
+			if (found.indexOf(child.hostname) === -1) {
+				q.push(child);
+				found.push(child);
+			}
+		}
 	}
-	if (depth > 1 || depth < 0) {
-		let downstream = neighbors.flatMap(neighbor => doScan(ns, server, neighbor, depth - 1));
-		downstream.forEach(server => neighbors.push(server));
-	}
-	return neighbors;
+	return found;
 }
 
 /**
  * @param {NS} ns
  * @param {string} parent The parent node
  * @param {string} server The server to scan
- * @return {string[]} - Array of all neighbor nodes
+ * @param {number} depth How deep in the tree the server is
+ * @return {Zombie[]} - Array of all non-parent neighbor nodes
  */
-function getNonParentNeighbors(ns, parent, server) {
-	return ns.scan(server).filter(result => result !== parent);
+function getNonParentNeighbors(ns, parent, server, depth) {
+	return ns.scan(server)
+		.filter(child => child !== parent)
+		.map(child => new Zombie(ns.getServer(child), ns, server, depth));
 }

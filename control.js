@@ -2,9 +2,9 @@
  * @typedef {import('./types/NetscriptDefinitions').NS} NS
  */
 
-import { findAllServers } from "./util.js";
-import { Zombie, newZombie } from './zombie.js';
-import * as Util from './util.js';
+import { findServers } from "./util.js";
+import { Zombie } from './zombie.js';
+import * as Formatter from './formatting.js';
 import * as logger from "./log.js";
 
 /** 
@@ -26,8 +26,7 @@ export async function main(ns) {
 	ns.disableLog("sleep");
 	ns.disableLog("exec");
 
-	const servers = findAllServers(ns)
-		.map(server => newZombie(ns, server))
+	const servers = findServers(ns, -1)
 		.filter(zombie => zombie.root)
 		.sort((a, b) => b.rating - a.rating);
 	
@@ -163,7 +162,7 @@ async function hackTarget(ns, servers, target, setup = true) {
 				ns.exec("grow.js", zombie.hostname, toGrow, target.hostname);
 				
 				await ns.sleep(5);
-				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "grow.js")[0] + " -> Money: " + Util.formatMoney(target.availableMoney) + " / " + Util.formatMoney(target.maxMoney));
+				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "grow.js")[0] + " -> Money: " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney));
 				availableRunners -= toGrow;
 				growThreads -= toGrow;
 			}
@@ -176,7 +175,7 @@ async function hackTarget(ns, servers, target, setup = true) {
 				ns.exec("hack.js", zombie.hostname, toHack, target.hostname);
 				
 				await ns.sleep(5);
-				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "hack.js")[0] + " <- Money " + Util.formatMoney(target.availableMoney));
+				ns.print(zombie.hostname + " " + zombie.getRunningScriptLogs(target, "hack.js")[0] + " <- Money " + Formatter.formatMoney(target.availableMoney));
 				availableRunners -= toHack;
 				hackThreads -= toHack;
 			}

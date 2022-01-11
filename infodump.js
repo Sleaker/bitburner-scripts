@@ -4,26 +4,50 @@
 
 import * as logger from './log.js';
 import { findServers } from './util.js';
-import { Zombie } from './zombie.js';
+import { compareZombie } from './zombie.js';
 
-
-const INFO_FORMAT = "%(hostname)-18s | %(contracts)4s | %(level)5s | %(canRoot)5s | %(root)5s | %(ports)5s | %(money)7s | %(growth)6s | %(effect)6s | %(weak)5s | %(chance)6s | %(rating)6s | %(security)4s";
-const SERVER_HEADER = {
-	hostname: "Server Name", contracts: "Cont", level: "Level", canRoot: "Nuke", root: "Root", ports: "Ports", weak: "Weak",
-	money: "Money", growth: "Growth", effect: "Effect", chance: "Chance", rating: "Rating", security: "Sec"
-};
 /** @param {NS} ns **/
 export async function main(ns) {
+	let HEADER_LENGTHS = {
+		hostname: 18, contracts: 4, level: 5, shouldCrack: 5, root: 5, ports: 5, money: 7, growth: 6, effect: 6, weak: 5, chance: 6, rating: 6, security: 4, parent: 18, faction: 0
+	};
+
+	let SERVER_HEADER = {
+		hostname: "Server Name", contracts: "Cont", level: "Level", shouldCrack: "Nuke", root: "Root", ports: "Ports", weak: "Weak",
+		money: "Money", growth: "Growth", effect: "Effect", chance: "Chance", rating: "Rating", security: "Sec", parent: "Parent", faction: "Faction"
+	};
+
 	logger.initialize(ns);
-	let depth = ns.args[0];
+	let [depth, sort] = ns.args;
 	if (!depth || isNaN(depth)) {
 		depth = -1;
 	}
-	logger.warn("File exists| %s", ns.fileExists("/A-Green-Tomorrow.lit"));
+	if (!sort) {
+		sort = "rating";
+	}
+	logger.warn("File exists| %s", ns.fileExists("A-Green-Tomorrow.lit"));
 	logger.info("Starting scan with depth %i", depth);
+
+	SERVER_HEADER[sort] = "+" + SERVER_HEADER[sort] + "+";
+	HEADER_LENGTHS[sort] += 2;
+	const INFO_FORMAT = "%(hostname)-" + HEADER_LENGTHS.hostname 
+	+ "s | %(contracts)" + HEADER_LENGTHS.contracts 
+	+ "s | %(level)" + HEADER_LENGTHS.level 
+	+ "s | %(shouldCrack)" + HEADER_LENGTHS.shouldCrack
+	+ "s | %(root)" + HEADER_LENGTHS.root
+	+ "s | %(ports)" + HEADER_LENGTHS.ports
+	+ "s | %(money)" + HEADER_LENGTHS.money
+	+ "s | %(growth)" + HEADER_LENGTHS.growth
+	+ "s | %(effect)" + HEADER_LENGTHS.effect
+	+ "s | %(weak)" + HEADER_LENGTHS.weak
+	+ "s | %(chance)" + HEADER_LENGTHS.chance
+	+ "s | %(rating)" + HEADER_LENGTHS.rating
+	+ "s | %(security)" + HEADER_LENGTHS.security
+	+ "s | %(parent)" + HEADER_LENGTHS.parent
+	+ "s | %(faction)s";
+
 	const servers = findServers(ns, depth)
-		.map(server => new Zombie(ns.getServer(server), ns))
-		.sort((a, b) => b.currentRating - a.currentRating);
+		.sort((a, b) => compareZombie(a, b, sort));
 	logger.success("Found %i Servers: ", servers.length);
 
 	logger.info(INFO_FORMAT, SERVER_HEADER);

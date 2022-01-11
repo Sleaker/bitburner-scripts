@@ -3,15 +3,16 @@
  * @typedef {import('./types/NetscriptDefinitions').Server} Server
  */
 
-import { formatMoney } from './util.js';
+import { formatMoney } from './formatting.js';
 
 /**
  * @param {NS} ns
- * @param {string} serverName
- * @constructs {serverInfo}
+ * @param {string} hostname
+ * @param {string} parentHostname
+ * @constructs {Zombie}
  */
-export function newZombie(ns, serverName) {
-	return new Zombie(ns.getServer(serverName), ns);
+export function newZombie(ns, hostname, parentHostname = undefined) {
+	return new Zombie(ns.getServer(hostname), ns, parentHostname);
 };
 
 /**
@@ -22,7 +23,7 @@ export class Zombie {
 	 * @param {Server} server
 	 * @param {NS} ns
 	 */
-	constructor(server, ns) {
+	constructor(server, ns, parentHostname = undefined, depth = 0) {
 		this.ns = ns;
 		this.hostname = server.hostname;
 		this.growth = server.serverGrowth;
@@ -33,6 +34,8 @@ export class Zombie {
 		this.security = server.minDifficulty;
 		this.money = formatMoney(this.maxMoney);
 		this.faction = server.organizationName;
+		this.parent = parentHostname;
+		this.depth = depth;
 		this.updateStats();
 	}
 
@@ -48,12 +51,12 @@ export class Zombie {
 		this.usedMemory = this.server.ramUsed;
 		this.availableMemory = this.memory - this.usedMemory;
 		this.root = this.server.hasAdminRights;
-		this.canRoot = this.level < this.ns.getPlayer().hacking;
 		this.contracts = this.ns.ls(this.hostname, ".cct").length;
 		this.weakenTime = this.calculateMinWeakenTime(this.ns.getPlayer());
 		this.availableMoney = this.server.moneyAvailable;
 		this.weak = this.weakenTime.toFixed(0);
 		this.currentSecurity = this.server.hackDifficulty;
+		this.shouldCrack = this.root ? "done" : (this.level < this.ns.getPlayer().hacking) ? "true" : "false";
 		return this;
 	}
 
@@ -123,5 +126,26 @@ export class Zombie {
 	 */
 	async uploadFiles(files) {
 		await this.ns.scp(files, this.hostname);
+	}
+}
+
+/**
+ * Compares two Zombie objects
+ * @param {Zombie} a
+ * @param {Zombie} b
+ * @param {string} field
+ */
+export function compareZombie(a, b, field) {
+	switch (field) {
+		case "hostname":
+		case "parent":
+		case "faction":
+		case "canRoot":
+			return a.hostname.localeCompare(b.hostname);
+		case "nuke":
+		case "root":
+			return a[field] === b[field] ? 0 : a[field] ? -1 : 1;
+		default:
+			return b[field] - a[field];
 	}
 }
