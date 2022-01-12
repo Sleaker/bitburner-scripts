@@ -45,7 +45,6 @@ export class Zombie {
 	 * Updates cached computed statistics with latest live information
 	 */
 	updateStats() {
-		this.ns.disableLog("getHackingLevel");
 		const player = this.ns.getPlayer();
 		this.server = this.ns.getServer(this.hostname);
 		this.hackEffect = calculatePercentMoneyHacked(this.server, player);
