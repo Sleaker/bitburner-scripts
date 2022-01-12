@@ -1,4 +1,4 @@
-/** @param {import('./types/NetscriptDefinitions').NS} ns **/
+/** @param {import('../types/NetscriptDefinitions').NS} ns **/
 export async function main(ns) {
 	const target = "max-hardware";
 	ns.print("Starting up hack against: " + target);

@@ -104,6 +104,9 @@ async function control(ns) {
 			counter = 0;
 			runners = await findNewServers(ns)
 				.then(list => list.filter(zombie => zombie.memory > 0));
+			if (runners.length === 0) {
+				ns.print("Something went wrong, runners array is empty");
+			}
 
 			runners.push(home);
 			maxThreads = countTotalAvailableThreads(runners);
@@ -184,17 +187,17 @@ async function doHacks(servers, target, maxThreads, setup) {
  * @returns {Promise<Zombie[]>} array of zombies
  */
 async function findNewServers(ns) {
-	let servers = findServers({ns: ns, depth: -1, type: "dfs"});
-	servers.filter(zombie => zombie.shouldCrack === "true")
-		.forEach(zombie => getRootForServer(zombie));
-	
-	servers = servers.filter(zombie => zombie.root && zombie.memory > 0)
-		.sort((a, b) => b.rating - a.rating);
-	for (const zombie of servers) {
+	let allServers = findServers({ns: ns, depth: -1, type: "dfs"});
+
+	for (const zombie of allServers) {
+		if (zombie.shouldCrack === "true") {
+			getRootForServer(zombie);
+		}
 		await zombie.uploadFiles(["weaken.js", "hack.js", "grow.js"]);
 		zombie.updateStats();
 	}
-	return Promise.resolve(servers);
+	let rooted = allServers.filter(zombie => zombie.root).sort((a, b) => b.rating - a.rating);
+	return Promise.resolve(rooted);
 }
 
 /**

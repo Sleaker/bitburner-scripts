@@ -1,4 +1,4 @@
-/** @param {import('./types/NetscriptDefinitions').NS} ns **/
+/** @param {import('../types/NetscriptDefinitions').NS} ns **/
 export async function main(ns) {
 	if (!ns.args[0]) {
 		ns.tprintf("ERROR| %s", "Missing arguments, check for runHost");

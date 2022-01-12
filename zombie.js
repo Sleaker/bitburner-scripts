@@ -64,8 +64,11 @@ export class Zombie {
 		return this;
 	}
 
+	/**
+	 * (maxMoney ^ 1.25) * hackChance * hackEffect * (growth ^ 1.1)
+	 */
 	get currentRating() {
-		return (this.maxMoney * this.hackChance * this.hackEffect * Math.min(this.growth, 100) / this.weakenTime) / 1e3;
+		return (Math.pow(this.maxMoney, 1.25) * this.hackEffect * Math.pow(Math.min(this.growth, 100), 1.1) / this.weakenTime) / 1e3;
 	}
 
 	get rating() {
@@ -123,10 +126,8 @@ export class Zombie {
 function calculateWeakenTime(server, player) {
 	const difficultyMult = server.requiredHackingSkill * server.hackDifficulty;
 
-	const baseDiff = 500;
 	const baseSkill = 50;
-	const diffFactor = 2.5;
-	let skillFactor = diffFactor * difficultyMult + baseDiff;
+	let skillFactor = 2.5 * difficultyMult + 500;
 
 	skillFactor /= player.hacking + baseSkill;
 

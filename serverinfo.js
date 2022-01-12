@@ -26,7 +26,6 @@ export async function main(ns) {
 	if (!sort) {
 		sort = "rating";
 	}
-	logger.warn("File exists| %s", ns.fileExists("A-Green-Tomorrow.lit"));
 	logger.info("Exploits: %s", numAvailableExploits(ns));
 	logger.info("Starting scan with depth %i", depth);
 
