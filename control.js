@@ -2,7 +2,7 @@
  * @typedef {import('./types/NetscriptDefinitions').NS} NS
  */
 
-import { findServers } from "./util.js";
+import { findServers, getRootForServer } from "./util.js";
 import { Zombie } from './zombie.js';
 import * as Formatter from './formatting.js';
 import * as logger from "./log.js";
@@ -15,8 +15,6 @@ import * as logger from "./log.js";
  * @see {findAllServers}
  * @see {logger}
  * 	
- * TODO: check for new discovered servers runner servers during each loop
- * TODO: auto-reselect target server based on access to new servers
  * TODO: don't filter "home" from list of servers that can have threads running
  *
  * @param {NS} ns
@@ -25,29 +23,19 @@ export async function main(ns) {
 	logger.initialize(ns);
 	ns.disableLog("sleep");
 	ns.disableLog("exec");
-
-	const servers = findServers(ns, -1)
-		.filter(zombie => zombie.root)
-		.sort((a, b) => b.rating - a.rating);
-	
-	// target is first server in the array after a sort
-	const [target] = servers;
+	ns.disableLog("scp");
+	ns.disableLog("scan");
 
 	// Kill all scripts running on remote servers
-	const runners = servers.filter(zombie => zombie.memory > 0);
-	for (const zombie of runners) {
-		await destroy(zombie)
-			.then(() => zombie.uploadFiles(["weaken.js", "hack.js", "grow.js"]));
-	}
-	await hackTarget(ns, runners, target)
-		.then(() => hackTarget(ns, runners, target, false));
+
+	await hackTarget(ns);
 }
 
 /**
  * @param {Zombie} server
  */
-async function destroy(server) {
-	return Promise.resolve(await server.ns.killall(server.hostname));
+function destroy(server) {
+	return server.ns.killall(server.hostname);
 }
 
 /**
@@ -58,6 +46,7 @@ function countTotalAvailableThreads(servers) {
 		.map(zombie => zombie.maxHackThreads)
 		.reduce((total, num) => total + num);
 }
+
 
 /**
  * @param {Zombie[]} servers
@@ -132,10 +121,32 @@ function getRunningScriptCounts(servers, target) {
  * @param {Zombie} target
  * @param {boolean} setup
  */
-async function hackTarget(ns, servers, target, setup = true) {
+async function hackTarget(ns) {
+	const home = new Zombie(ns.getServer("home"), ns);
+	let servers = await findNewServers(ns);
+	const runners = servers.filter(zombie => zombie.memory > 0);
+	for (const zombie of runners) {
+		destroy(zombie);
+	}
+	let [target] = servers;
+	let setup = true;
+	let counter = 0;
 	let maxThreads = countTotalAvailableThreads(servers);
 	logger.info("%(stage)s | Starting up against %(target)s using %(threads)d total threads.", { stage: setup ? "SETUP" : "HACK", target: target.hostname, threads: maxThreads });
 	while (true) {
+		// Every 30 seconds rescan for new servers or exploitable servers
+		if (++counter === 30) {
+			home.updateStats();
+			counter = 0;
+			servers = await findNewServers(ns);
+			servers.push(home);
+			maxThreads = countTotalAvailableThreads(servers);
+			if (servers[0].hostname !== target.hostname) {
+				target = servers[0];
+				setup = true;
+				logger.info("Reselecting target to: %s", target.hostname);
+			}
+		}
 		target.updateStats();
 		const [runningGrow, runningHack, runningWeaken] = getRunningScriptCounts(servers, target);
 
@@ -192,11 +203,9 @@ async function hackTarget(ns, servers, target, setup = true) {
 
 		await ns.sleep(1000);
 		if (setup && target.isAtMinSecurity() && target.isAtMaxMoney()) {
-			for (const zombie of servers) {
-				await destroy(zombie);
-			}
 			logger.success("%(target)s finished setup.", { target: target.hostname });
-			break;
+			ns.print("Finished hack setup: " + target.hostname);
+			setup = false;
 		} else {
 			// ns.print("Money: " + (100 * target.availableMoney / target.maxMoney).toFixed(1) + "% | Security: " + target.currentSecurity);
 			logger.debug("%(target)s - Security %(sec)s - Money %(money)s/%(max)s", {
@@ -207,4 +216,22 @@ async function hackTarget(ns, servers, target, setup = true) {
 			});
 		}
 	}
+}
+
+/**
+ * @param {NS} ns
+ * @returns {Promise<Zombie[]>} array of zombies
+ */
+async function findNewServers(ns) {
+	let servers = findServers({ns: ns, depth: -1, type: "dfs"});
+	servers.filter(zombie => zombie.shouldCrack === "true")
+		.forEach(zombie => getRootForServer(zombie));
+	
+	servers = servers.filter(zombie => zombie.root && zombie.memory > 0)
+		.sort((a, b) => b.rating - a.rating);
+	for (const zombie of servers) {
+		await zombie.uploadFiles(["weaken.js", "hack.js", "grow.js"]);
+		zombie.updateStats();
+	}
+	return Promise.resolve(servers);
 }

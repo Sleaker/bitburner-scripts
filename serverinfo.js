@@ -5,15 +5,16 @@
 import * as logger from './log.js';
 import { findServers } from './util.js';
 import { compareZombie } from './zombie.js';
+import { numAvailableExploits } from './exploits.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	let HEADER_LENGTHS = {
-		hostname: 18, contracts: 4, level: 5, shouldCrack: 5, root: 5, ports: 5, money: 7, growth: 6, effect: 6, weak: 5, chance: 6, rating: 6, security: 4, parent: 18, faction: 0
+		hostname: 18, contracts: 4, level: 5, shouldCrack: 5, root: 5, backdoor: 5, ports: 5, money: 7, growth: 6, effect: 6, weak: 5, chance: 6, rating: 6, security: 4, parent: 18, faction: 0
 	};
 
 	let SERVER_HEADER = {
-		hostname: "Server Name", contracts: "Cont", level: "Level", shouldCrack: "Nuke", root: "Root", ports: "Ports", weak: "Weak",
+		hostname: "Server Name", contracts: "Cont", level: "Level", shouldCrack: "Nuke", root: "Root", backdoor: "Back", ports: "Ports", weak: "Weak",
 		money: "Money", growth: "Growth", effect: "Effect", chance: "Chance", rating: "Rating", security: "Sec", parent: "Parent", faction: "Faction"
 	};
 
@@ -26,6 +27,7 @@ export async function main(ns) {
 		sort = "rating";
 	}
 	logger.warn("File exists| %s", ns.fileExists("A-Green-Tomorrow.lit"));
+	logger.info("Exploits: %s", numAvailableExploits(ns));
 	logger.info("Starting scan with depth %i", depth);
 
 	SERVER_HEADER[sort] = "+" + SERVER_HEADER[sort] + "+";
@@ -35,6 +37,7 @@ export async function main(ns) {
 	+ "s | %(level)" + HEADER_LENGTHS.level 
 	+ "s | %(shouldCrack)" + HEADER_LENGTHS.shouldCrack
 	+ "s | %(root)" + HEADER_LENGTHS.root
+	+ "s | %(backdoor)" + HEADER_LENGTHS.backdoor
 	+ "s | %(ports)" + HEADER_LENGTHS.ports
 	+ "s | %(money)" + HEADER_LENGTHS.money
 	+ "s | %(growth)" + HEADER_LENGTHS.growth
@@ -46,7 +49,8 @@ export async function main(ns) {
 	+ "s | %(parent)" + HEADER_LENGTHS.parent
 	+ "s | %(faction)s";
 
-	const servers = findServers(ns, depth)
+	const servers = findServers({ns: ns, depth: depth, type: "dfs"})
+		.map(zombie => zombie.updateStats())
 		.sort((a, b) => compareZombie(a, b, sort));
 	logger.success("Found %i Servers: ", servers.length);
 
