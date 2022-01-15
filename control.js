@@ -3,7 +3,7 @@
  * @typedef {import('./types/NetscriptDefinitions').Server} Server
  */
 
-import { findServers, getRootForServer } from "./util.js";
+import { findServers } from "./util.js";
 import { Zombie } from './zombie.js';
 import * as Formatter from './formatting.js';
 import { Logger } from "./log.js";
@@ -87,6 +87,7 @@ async function control(ns) {
 		{ stage: targets[0].setup ? "SETUP" : "HACK", target: targets[0].hostname, threads: threads.counts.maxThreads });
 	while (true) {
 		for (const target of targets) {
+			target.zombie.updateStats(ns);
 			if (target.setup && target.zombie.isAtMinSecurity() && target.zombie.isAtMaxMoney()) {
 				logger.success("Finished hack setup: %s", target.hostname);
 				ns.print("Finished hack setup: " + target.hostname);
@@ -113,6 +114,7 @@ async function control(ns) {
 			for (const [index, target] of targets.entries()) {
 				if (potentialTargets[index].hostname !== target.hostname) {
 					if (index === 0) {
+						cleanupOldThreads(ns, targets, runners)
 						// if main target resets, just start from scratch
 						targets = [{ zombie: potentialTargets[0], hostname: potentialTargets[0].hostname, setup: true, threadRatio: 1 }];
 						logger.info("Reselecting main target to: %s", target.hostname);
@@ -132,6 +134,25 @@ async function control(ns) {
 		await doHacks(runners, targets, ns, logger);
 
 		await ns.sleep(1000);
+	}
+}
+
+/**
+ * 
+ * @param {NS} ns 
+ * @param {{zombie: Zombie, hostname: string, setup: boolean, threadRatio: number}[]} oldTargets
+ * @param {Server[]} runners 
+ */
+function cleanupOldThreads(ns, oldTargets, runners) {
+	for (const target of oldTargets) {
+		for (const runner of runners) {
+			for (const scriptName of ["weaken.js", "grow.js",  "hack.js"]) {
+				let script = ns.getRunningScript(scriptName, runner.hostname, target.hostname);
+				if (script) {
+					ns.kill(scriptName, runner.hostname, target.hostname);
+				}
+			}
+		}
 	}
 }
 

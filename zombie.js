@@ -6,9 +6,8 @@
 
 
 import { formatMoney } from './formatting.js';
-import { numAvailableExploits, isExploitAvailable, runExploit } from './exploits.js';
+import { numAvailableExploits, isExploitAvailable, runExploit, exploits } from './exploits.js';
 
-// TODO: unfortunately this structure doesn't seem to work well with BitBurner caching. may need to rework and provide own cache
 /**
  * @class
  * @constructor
@@ -82,6 +81,7 @@ export class Zombie {
 
 	/**
 	 * Updates cached computed statistics with latest live information
+	 * @param {NS} ns
 	 */
 	updateStats(ns) {
 		const player = ns.getPlayer();
@@ -163,7 +163,7 @@ export class Zombie {
 			.map(exploit => exploit.substring(0, exploit.indexOf(".")))
 			.forEach(exploit => runExploit(ns, exploit, this.hostname));
 		ns.nuke(this.hostname);
-		this.updateStats();
+		this.updateStats(ns);
 		ns.print("Rooted server: " + this.hostname);
 		ns.tprintf("SUCCESS | Rooted server: %s", this.hostname);
 	}
