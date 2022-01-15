@@ -15,9 +15,12 @@
 
 	// run the main script
 	while(true) {
-        if (!ns.scriptRunning("control.js", "home")) {
+        let script = ns.getRunningScript("control.js");
+        if (!script) {
             log.warn("Restarting control.js");
             ns.run("control.js");
+        } else {
+            ns.print("control.js still running");
         }
         await ns.sleep(1000);
     }

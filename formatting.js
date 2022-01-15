@@ -4,6 +4,7 @@
  */
  export function formatMoney(money) {
 	const sign = [
+		{ v: 1, s: "" },
 		{ v: 1e3, s: "K" },
 		{ v: 1e6, s: "M" },
 		{ v: 1e9, s: "B" },

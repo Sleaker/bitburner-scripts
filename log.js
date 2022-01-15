@@ -1,62 +1,65 @@
 /**
  * @type {import('./types/NetscriptDefinitions').NS}
  */
-var loggingContext;
-/** 
- * @type {boolean} 
- */
-var logDebugMode;
 
 /**
- * @param {NS} ns
+ * @class
  */
-export function initialize(ns, debug = false) {
-	loggingContext = ns;
-	logDebugMode = debug;
-}
+export class Logger {
 
-/** 
- * @param {string} format
- * @param {any[]} values
- **/
-export function error(format, values) {
-	loggingContext.tprintf("ERROR  | " + format, values);
-}
+	constructor(ns, debug = false) {
+		this.ns = ns;
+		this.debugEnabled = debug;
+	}
 
-/** 
- * @param {string} format
- * @param {any[]} values
- **/
-export function fail(format, values) {
-	loggingContext.tprintf("FAIL   | " + format, values);
-}
+	/** 
+	 * @param {string} format
+	 * @param {any[]} values
+	 **/
+	error(format, values) {
+		this.ns.tprintf("ERROR  | " + format, values);
+	}
 
-/** 
- * @param {string} format
- * @param {any[]} values
- **/
-export function info(format, values) {
-	loggingContext.tprintf("INFO   | " + format, values);
-}
+	/** 
+	 * @param {string} format
+	 * @param {any[]} values
+	 **/
+	fail(format, values) {
+		this.ns.tprintf("FAIL   | " + format, values);
+	}
 
-/** 
- * @param {string} format
- * @param {any[]} values
- **/
-export function warn(format, values) {
-	loggingContext.tprintf("WARNING| " + format, values);
-}
+	/** 
+	 * @param {string} format
+	 * @param {any[]} values
+	 **/
+	info(format, values) {
+		this.ns.tprintf("INFO   | " + format, values);
+	}
 
-/** 
- * @param {string} format
- * @param {any[]} values
- **/
-export function success(format, values) {
-	loggingContext.tprintf("SUCCESS| " + format, values);
-}
+	/** 
+	 * @param {string} format
+	 * @param {any[]} values
+	 **/
+	warn(format, values) {
+		this.ns.tprintf("WARNING| " + format, values);
+	}
 
-export function debug(format, values) {
-	if (logDebugMode) {
-		loggingContext.tprintf("DEBUG| " + format, values);
+	/** 
+	 * @param {string} format
+	 * @param {any[]} values
+	 **/
+	success(format, values) {
+		this.ns.tprintf("SUCCESS| " + format, values);
+	}
+
+	/**
+	 * 
+	 * @param {string} format 
+	 * @param {any[]} values 
+	 */
+	debug(format, values) {
+		if (this.debugEnabled) {
+			this.ns.tprintf("DEBUG| " + format, values);
+		}
 	}
 }

@@ -4,62 +4,101 @@
  * @typedef {import('./types/NetscriptDefinitions').Player} Player
  */
 
+
 import { formatMoney } from './formatting.js';
-import { numAvailableExploits } from './exploits.js';
+import { numAvailableExploits, isExploitAvailable, runExploit } from './exploits.js';
 
+// TODO: unfortunately this structure doesn't seem to work well with BitBurner caching. may need to rework and provide own cache
 /**
- * @param {NS} ns
- * @param {string} hostname
- * @param {string} parentHostname
- * @constructs {Zombie}
- */
-export function newZombie(ns, hostname, parentHostname = undefined) {
-	return new Zombie(ns.getServer(hostname), ns, parentHostname);
-};
-
-/**
- * Class wrapping the @see {Server} object
+ * @class
+ * @constructor
+ * @public
  */
 export class Zombie {
 	/**
 	 * @param {Server} server
 	 * @param {NS} ns
+	 * @param {string} parentHostname
+	 * @param {number} depth
 	 */
 	constructor(server, ns, parentHostname = undefined, depth = 0) {
-		this.ns = ns;
+		/**
+		 * @type {string}
+		 * @public
+		 */
 		this.hostname = server.hostname;
-		this.growth = server.serverGrowth;
+		/**
+		 * @type {number}
+		 * @public
+		 */
+		this.growth = Math.min(server.serverGrowth, 100);
+		/**
+		 * @type {number}
+		 * @public
+		 */
 		this.memory = server.maxRam;
+		/**
+		 * @type {number}
+		 * @public
+		 */
 		this.level = server.requiredHackingSkill;
+		/**
+		 * @type {number}
+		 * @public
+		 */
 		this.ports = server.numOpenPortsRequired;
+		/**
+		 * @type {number}
+		 * @public
+		 */
 		this.maxMoney = server.moneyMax;
+		/**
+		 * @type {number}
+		 * @public
+		 */
 		this.security = server.minDifficulty;
+		/**
+		 * @type {string}
+		 * @public
+		 */
 		this.money = formatMoney(this.maxMoney);
+		/**
+		 * @type {string}
+		 * @public
+		 */
 		this.faction = server.organizationName;
+		/**
+		 * @type {string}
+		 * @public
+		 */
 		this.parent = parentHostname;
+		/**
+		 * @type {number}
+		 * @public
+		 */
 		this.depth = depth;
-		this.updateStats();
+		this.updateStats(ns);
 	}
 
 	/**
 	 * Updates cached computed statistics with latest live information
 	 */
-	updateStats() {
-		const player = this.ns.getPlayer();
-		this.server = this.ns.getServer(this.hostname);
-		this.hackEffect = calculatePercentMoneyHacked(this.server, player);
-		this.effect = this.hackEffect.toFixed(4);
-		this.hackChance = calculateHackingChance(this.server, player);
-		this.chance = this.hackChance.toFixed(4);
+	updateStats(ns) {
+		const player = ns.getPlayer();
+		this.server = ns.getServer(this.hostname);
+		this.hackEffect = calculateMaxMoneyHacked(this.server, player);
+		this.effect = (this.hackEffect * 100).toFixed(2);
+		this.hackChance = calculateMaxHackingChance(this.server, player);
+		this.chance = (this.hackChance * 100).toFixed(0);
 		this.usedMemory = this.server.ramUsed;
 		this.availableMemory = this.memory - this.usedMemory;
 		this.root = this.server.hasAdminRights;
-		this.contracts = this.ns.ls(this.hostname, ".cct").length;
-		this.weakenTime = calculateWeakenTime(this.server, player);
+		this.contracts = ns.ls(this.hostname, ".cct").length;
+		this.weakenTime = calculateMinWeakenTime(this.server, player);
 		this.availableMoney = this.server.moneyAvailable;
 		this.weak = this.weakenTime.toFixed(0);
 		this.currentSecurity = this.server.hackDifficulty;
-		this.shouldCrack = this.root ? "done" : (this.level <= this.ns.getHackingLevel() && this.ports <= numAvailableExploits(this.ns)) ? "true" : "false";
+		this.shouldCrack = this.root ? "done" : (this.level <= ns.getHackingLevel() && this.ports <= numAvailableExploits(ns)) ? "true" : "false";
 		this.backdoor = this.server.backdoorInstalled;
 		return this;
 	}
@@ -72,7 +111,7 @@ export class Zombie {
 	}
 
 	get rating() {
-		return this.currentRating.toFixed(0);
+		return (this.currentRating / 1e3).toFixed(0);
 	}
 
 	get shouldGrow() {
@@ -85,37 +124,48 @@ export class Zombie {
 	}
 
 	isAtMinSecurity() {
-		return this.currentSecurity == this.security;
+		return this.currentSecurity === this.security;
 	}
 
 	isAtMaxMoney() {
-		return this.maxMoney == this.availableMoney;
+		return this.maxMoney === this.availableMoney;
 	}
 
 	/**
 	 * @param {string} scriptName
 	 */
-	isScriptRunning(scriptName) {
-		return this.ns.scriptRunning(scriptName, this.hostname);
+	isScriptRunning(ns, scriptName) {
+		return ns.scriptRunning(scriptName, this.hostname);
 	}
 
 	/**
-	 * @param {serverInfo} target
+	 * @param {Zombie} target
 	 * @param {string} scriptName
 	 */
-	getRunningScriptLogs(target, scriptName) {
-		if (this.isScriptRunning(scriptName)) {
-			return this.ns.getRunningScript(scriptName, this.hostname, target.hostname).logs;
-		} else {
-			return [];
-		}
+	getRunningScriptLogs(ns, target, scriptName) {
+		let script = ns.getRunningScript(scriptName, this.hostname, target.hostname);
+		return script ? script.logs : [];
 	}
 
 	/**
 	 * @param {string[]} files 
 	 */
-	async uploadFiles(files) {
-		await this.ns.scp(files, this.hostname);
+	async uploadFiles(ns, files) {
+		await ns.scp(files, this.hostname);
+	}
+
+	/**
+	 * @param {ns}
+	 * @param {Zombie} zombie 
+	 */
+	getRoot(ns) {
+		exploits.filter(exploit => isExploitAvailable(ns, exploit))
+			.map(exploit => exploit.substring(0, exploit.indexOf(".")))
+			.forEach(exploit => runExploit(ns, exploit, this.hostname));
+		ns.nuke(this.hostname);
+		this.updateStats();
+		ns.print("Rooted server: " + this.hostname);
+		ns.tprintf("SUCCESS | Rooted server: %s", this.hostname);
 	}
 }
 
@@ -123,8 +173,8 @@ export class Zombie {
  * @param {Server} server
  * @param {Player} player
  */
-function calculateWeakenTime(server, player) {
-	const difficultyMult = server.requiredHackingSkill * server.hackDifficulty;
+function calculateMinWeakenTime(server, player) {
+	const difficultyMult = server.requiredHackingSkill * server.minDifficulty;
 
 	const baseSkill = 50;
 	let skillFactor = 2.5 * difficultyMult + 500;
@@ -142,21 +192,12 @@ function calculateWeakenTime(server, player) {
  * @param {Player} player 
  * @returns 
  */
-function calculateHackingChance(server, player) {
-	const hackFactor = 1.75;
-	const difficultyMult = (100 - server.hackDifficulty) / 100;
-	const skillMult = hackFactor * player.hacking;
+function calculateMaxHackingChance(server, player) {
+	const difficultyMult = (100 - server.minDifficulty) / 100;
+	const skillMult = 1.75 * player.hacking;
 	const skillChance = (skillMult - server.requiredHackingSkill) / skillMult;
-	const chance =
-		skillChance * difficultyMult * player.hacking_chance_mult * calculateIntelligenceBonus(player.intelligence, 1);
-	if (chance > 1) {
-		return 1;
-	}
-	if (chance < 0) {
-		return 0;
-	}
-
-	return chance;
+	const chance = skillChance * difficultyMult * player.hacking_chance_mult * calculateIntelligenceBonus(player.intelligence, 1);
+	return Math.min(Math.max(chance, 0), 1);
 }
 
 function calculateIntelligenceBonus(intelligence, weight = 1) {
@@ -169,21 +210,11 @@ function calculateIntelligenceBonus(intelligence, weight = 1) {
  * @param {Player} player 
  * @returns 
  */
-function calculatePercentMoneyHacked(server, player) {
-	// Adjust if needed for balancing. This is the divisor for the final calculation
-	const balanceFactor = 240;
-
-	const difficultyMult = (100 - server.hackDifficulty) / 100;
+function calculateMaxMoneyHacked(server, player) {
+	const difficultyMult = (100 - server.minDifficulty) / 100;
 	const skillMult = (player.hacking - (server.requiredHackingSkill - 1)) / player.hacking;
-	const percentMoneyHacked = (difficultyMult * skillMult * player.hacking_money_mult) / balanceFactor;
-	if (percentMoneyHacked < 0) {
-		return 0;
-	}
-	if (percentMoneyHacked > 1) {
-		return 1;
-	}
-
-	return percentMoneyHacked;
+	const percentMoneyHacked = (difficultyMult * skillMult * player.hacking_money_mult) / 240;
+	return Math.min(Math.max(percentMoneyHacked, 0), 1);
 }
 
 /**
@@ -192,7 +223,27 @@ function calculatePercentMoneyHacked(server, player) {
  * @param {Zombie} b
  * @param {string} field
  */
-export function compareZombie(a, b, field) {
+export function compareZombie(a, b, field, asc = false) {
+	// Swap order if we're sorting in ascending order
+	if (asc) {
+		[a, b] = [b, a];
+	}
+	// for formatted fields, use the base field to sort off
+	switch (field) {
+		case "rating":
+			field = "currentRating";
+			break;
+		case "effect":
+			field = "hackEffect";
+			break;
+		case "weak":
+			field = "weakenTime";
+			break;
+		case "chance":
+			field = "hackChance";
+			break;
+		default:
+	}
 	switch (field) {
 		case "hostname":
 		case "parent":

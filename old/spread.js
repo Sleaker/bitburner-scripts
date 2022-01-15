@@ -1,9 +1,9 @@
 /**
- * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ * @typedef {import('../types/NetscriptDefinitions').NS} NS
  */
-import { findServers, getRootForServer } from "./util.js";
-import * as log from "./log";
-import { Zombie } from "./zombie";
+import { findServers, getRootForServer } from "../util.js";
+import * as log from "../log";
+import { Zombie } from "../zombie";
 
 /** @param {NS} ns **/
 export async function main(ns) {
