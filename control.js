@@ -7,6 +7,7 @@ import { findServers } from "./util.js";
 import { Zombie } from './zombie.js';
 import * as Formatter from './formatting.js';
 import { Logger } from "./log.js";
+import { numAvailableExploits } from "./exploits.js";
 
 /** 
  * Main control script, scans all potential servers at startup, selects 
@@ -25,6 +26,7 @@ export async function main(ns) {
 	ns.disableLog("scp");
 	ns.disableLog("scan");
 	ns.disableLog("getHackingLevel");
+    ns.disableLog("killall");
 
 	// run the main script
 	await control(ns);
@@ -83,6 +85,7 @@ async function control(ns) {
 	let counter = 0;
 	let targets = [{ zombie: potentialTargets[0], hostname: potentialTargets[0].hostname, setup: true, threadRatio: 1 }];
 	let threads = getThreadCounts(ns, runners, targets);
+    ns.print("Starting up against " + targets[0].hostname + " -> " + threads.counts.maxThreads);
 	logger.info("%(stage)s | Starting up against %(target)s using %(threads)d total threads.", 
 		{ stage: targets[0].setup ? "SETUP" : "HACK", target: targets[0].hostname, threads: threads.counts.maxThreads });
 	while (true) {
@@ -117,8 +120,8 @@ async function control(ns) {
 						cleanupOldThreads(ns, targets, runners)
 						// if main target resets, just start from scratch
 						targets = [{ zombie: potentialTargets[0], hostname: potentialTargets[0].hostname, setup: true, threadRatio: 1 }];
-						logger.info("Reselecting main target to: %s", target.hostname);
-						ns.print("Reselecting main hack target: " + target.hostname);
+						logger.info("Reselecting main target to: %s", targets[0].hostname);
+						ns.print("Reselecting main hack target: " + targets[0].hostname);
 						break;
 					} else {
 						target.zombie = potentialTargets[index];
@@ -226,7 +229,7 @@ async function doHacks(runners, targets, ns, logger) {
 				
 				await ns.sleep(5);
 				if (pid > 0) {
-					ns.print(server.hostname + " " + getRunningScriptLogs(ns, server, target.hostname, "grow.js")[0] + " -> Money: " + Formatter.formatMoney(target.zombie.availableMoney) + " / " + Formatter.formatMoney(target.zombie.maxMoney));
+					ns.print(server.hostname + " " + getRunningScriptLogs(ns, server, target.hostname, "grow.js")[0] + " -> Money: " + Formatter.formatMoney(target.zombie.availableMoney) + " / " + Formatter.formatMoney(target.zombie.maxMoney) + " -> Sec: " + target.zombie.currentSecurity);
 					availableRunners -= toGrow;
 					threads[target.hostname].wantedGrowThreads -= toGrow;
 				}
@@ -273,8 +276,14 @@ async function findNewServers(ns) {
 		if (zombie.shouldCrack === "true") {
 			zombie.getRoot(ns);
 		}
-		await zombie.uploadFiles(ns, ["weaken.js", "hack.js", "grow.js"]);
+		await zombie.uploadFiles(ns, ["weakenloop.js", "weaken.js", "hack.js", "grow.js"]);
 		zombie.updateStats(ns);
+
+		// foodnstuff has the best XP rate, so just target it for weakenloops
+		if (zombie.maxRunningThreads > 0 && !ns.isRunning("weakenloop.js", zombie.hostname, "foodnstuff")) {
+			ns.killall(zombie.hostname);
+			ns.exec("weakenloop.js", zombie.hostname, zombie.maxRunningThreads, "foodnstuff");
+		}
 	}
 	let rooted = allServers.filter(zombie => zombie.root).sort((a, b) => b.currentRating - a.currentRating);
 	return Promise.resolve(rooted);

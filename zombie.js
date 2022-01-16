@@ -88,6 +88,8 @@ export class Zombie {
 		this.server = ns.getServer(this.hostname);
 		this.hackEffect = calculateMaxMoneyHacked(this.server, player);
 		this.effect = (this.hackEffect * 100).toFixed(2);
+		this.hackThreads = Math.floor(35.82 / (this.hackEffect * 100)); // 35.82% per hack will give 30% final funds after 4 hacks
+		this.maxTargetingThreads = (this.hackThreads * 25); // maximum number of threads that can target the server for naive hack loops
 		this.hackChance = calculateMaxHackingChance(this.server, player);
 		this.chance = (this.hackChance * 100).toFixed(0);
 		this.usedMemory = this.server.ramUsed;
@@ -100,6 +102,8 @@ export class Zombie {
 		this.currentSecurity = this.server.hackDifficulty;
 		this.shouldCrack = this.root ? "done" : (this.level <= ns.getHackingLevel() && this.ports <= numAvailableExploits(ns)) ? "true" : "false";
 		this.backdoor = this.server.backdoorInstalled;
+		this.xps = (calculateXp(this.server, player) / this.weakenTime).toFixed(2);
+
 		return this;
 	}
 
@@ -111,14 +115,14 @@ export class Zombie {
 	}
 
 	get rating() {
-		return (this.currentRating / 1e3).toFixed(0);
+		return formatMoney(this.currentRating / 1e3);
 	}
 
 	get shouldGrow() {
 		return this.availableMoney < this.maxMoney;
 	}
 
-	get maxHackThreads() {
+	get maxRunningThreads() {
 		let maxThreads = Math.floor(this.memory / 1.75);
 		return this.hostname === "home" ? Math.floor(maxThreads * .8) : maxThreads;
 	}
@@ -167,6 +171,17 @@ export class Zombie {
 		ns.print("Rooted server: " + this.hostname);
 		ns.tprintf("SUCCESS | Rooted server: %s", this.hostname);
 	}
+}
+
+/**
+ * @param {Server} server
+ * @param {Player} player
+ */
+function calculateXp(server, player) {
+	if (server.baseDifficulty == null) {
+		server.baseDifficulty = server.hackDifficulty;
+	}
+	return 3 + (server.baseDifficulty * player.hacking_exp_mult * .03);
 }
 
 /**

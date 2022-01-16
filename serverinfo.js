@@ -13,12 +13,12 @@ export async function main(ns) {
 	_serverLogger = new Logger(ns, false);
 	let HEADER_LENGTHS = {
 		hostname: 18, depth: 3, contracts: 2, level: 4, shouldCrack: 5, root: 5, backdoor: 5, ports: 2, 
-		money: 7, growth: 3, effect: 5, weak: 5, chance: 4, rating: 4, security: 4, parent: 18, faction: 0
+		money: 7, growth: 3, effect: 5, weak: 5, chance: 4, rating: 6, xps: 5, security: 4, parent: 18, faction: 0, maxTargetingThreads: 4
 	};
 
 	let SERVER_HEADER = {
 		hostname: "Server Name", depth: "Dep", contracts: "Cx", level: "LvL", shouldCrack: "Nuke", root: "Root", backdoor: "Back", ports: "P", weak: "Weak",
-		money: "Money", growth: "Gro", effect: "Eff", chance: "Chnc", rating: "Rate", security: "Sec", parent: "Parent", faction: "Faction"
+		money: "Money", growth: "Gro", effect: "Eff", chance: "Chnc", rating: "Rate", xps: "XPS", security: "Sec", parent: "Parent", faction: "Faction", maxTargetingThreads: "Thrd"
 	};
 
 	let [depth, sort] = ns.args;
@@ -49,9 +49,11 @@ export async function main(ns) {
 	+ "s | %(money)" + HEADER_LENGTHS.money
 	+ "s | %(growth)" + HEADER_LENGTHS.growth
 	+ "s | %(effect)" + HEADER_LENGTHS.effect
+	+ "s | %(maxTargetingThreads)" + HEADER_LENGTHS.maxTargetingThreads
 	+ "s | %(weak)" + HEADER_LENGTHS.weak
 	+ "s | %(chance)" + HEADER_LENGTHS.chance
 	+ "s | %(rating)" + HEADER_LENGTHS.rating
+	+ "s | %(xps)" + HEADER_LENGTHS.xps
 	+ "s | %(security)" + HEADER_LENGTHS.security
 	+ "s | %(parent)" + HEADER_LENGTHS.parent
 	+ "s" // | %(faction)s";
@@ -60,13 +62,14 @@ export async function main(ns) {
 		.filter(current => !current.server.hostname.startsWith("zombie"))
 		.map(current => new Zombie(current.server, ns, current.parent, current.depth))
 		.sort((a, b) => compareZombie(a, b, sort, asc));
-		_serverLogger.success("Found %i Servers: ", servers.length);
+	_serverLogger.success("Found %i Servers: ", servers.length);
+	_serverLogger.success(INFO_FORMAT, SERVER_HEADER);
 
-		_serverLogger.info(INFO_FORMAT, SERVER_HEADER);
 	for (const zombie of servers) {
 		await downloadTextFiles(ns, zombie.hostname)
 			.then(() => _serverLogger.info(INFO_FORMAT, zombie));
 	}
+	_serverLogger.success(INFO_FORMAT, SERVER_HEADER);	
 }
 
 /**
