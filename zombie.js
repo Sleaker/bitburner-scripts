@@ -76,6 +76,11 @@ export class Zombie {
 		 * @public
 		 */
 		this.depth = depth;
+		/**
+		 * @type {boolean}
+		 * @public
+		 */
+		this.setup = false;
 		this.updateStats(ns);
 	}
 
@@ -89,6 +94,11 @@ export class Zombie {
 		this.hackEffect = calculateMaxMoneyHacked(this.server, player);
 		this.effect = (this.hackEffect * 100).toFixed(2);
 		this.hackThreads = Math.floor(35.82 / (this.hackEffect * 100)); // 35.82% per hack will give 30% final funds after 4 hacks
+		/**
+		 * maximum number of threads that should be used to target this server for naive loops
+		 * @property
+		 * @public
+		 */
 		this.maxTargetingThreads = (this.hackThreads * 25); // maximum number of threads that can target the server for naive hack loops
 		this.hackChance = calculateMaxHackingChance(this.server, player);
 		this.chance = (this.hackChance * 100).toFixed(0);
@@ -103,7 +113,6 @@ export class Zombie {
 		this.shouldCrack = this.root ? "done" : (this.level <= ns.getHackingLevel() && this.ports <= numAvailableExploits(ns)) ? "true" : "false";
 		this.backdoor = this.server.backdoorInstalled;
 		this.xps = (calculateXp(this.server, player) / this.weakenTime).toFixed(2);
-
 		return this;
 	}
 
@@ -256,6 +265,9 @@ export function compareZombie(a, b, field, asc = false) {
 			break;
 		case "chance":
 			field = "hackChance";
+			break;
+		case "threads":
+			field = "maxTargetingThreads";
 			break;
 		default:
 	}
