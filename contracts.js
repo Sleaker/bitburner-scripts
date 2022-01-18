@@ -46,13 +46,16 @@ export async function main(ns) {
                     contract.solution = findValidIps(contract.data);
                     break;
                 case "Algorithmic Stock Trader I":
-                    contract.solution = tradeStocks1(contract.data);
+                    contract.solution = stockSolver(1, contract.data);
                     break;
                 case "Algorithmic Stock Trader II":
-                    contract.solution = tradeStocks2(contract.data);
+                    contract.solution = stockSolver(Math.floor(contract.data.length / 2), contract.data);
                     break;
                 case "Algorithmic Stock Trader III":
-                    contract.solution = tradeStock3(contract.data);
+                    contract.solution = stockSolver(2, contract.data);
+                    break;
+                case "Algorithmic Stock Trader IV":
+                    contract.solution = stockSolver(contract.data[0], contract.data[1]);
                     break;
                 case "Sanitize Parentheses in Expression":
                     contract.solution = sanitizeParentheses(contract.data);
@@ -64,7 +67,7 @@ export async function main(ns) {
             }
             if (contract.solution) {
                 contract.result = ns.codingcontract.attempt(contract.solution, contract.filename, contract.hostname, { returnReward: true});
-                ns.print("Solved " + contract.filename + "Result: " + contract.result);
+                ns.print("Solved " + contract.filename + "  Result: " + contract.result);
             }
             else {
                 ns.print("No solution available for contract: " + contract.type);
@@ -100,50 +103,35 @@ function getContracts(ns, server) {
     });
 }
 
-/**
- * 
- * @param {number[]} prices 
- * @returns 
- */
-function tradeStocks1(prices) {
-    let maxCur = 0;
-    let max = 0;
-    for (let i = 1; i < prices.length; ++i) {
-        maxCur = Math.max(0, (maxCur += prices[i] - prices[i - 1]));
-        max = Math.max(maxCur, maxSoFar);
+function stockSolver(txns, prices) {
+    let len = prices.length
+    if (len < 2) {
+        return 0
     }
-    return max;
-}
-
-/**
- * Given any number of trades find the most profit able to be made given the prices
- * @param {number[]} prices 
- */
-function tradeStocks2(prices) {
-    let profit = 0
-    for (let p = 1; p < prices.length; ++p) {
-      profit += Math.max(prices[p] - prices[p - 1], 0)
+    if (txns > len / 2) {
+        var res = 0
+        for (var i = 1; i < len; ++i) {
+            res += Math.max(prices[i] - prices[i - 1], 0)
+        }
+        return res
     }
-    return profit;
-}
-
-/**
- * 
- * @param {number[]} prices 
- */
-function tradeStock3(prices) {
-    let hold1 = Number.MIN_SAFE_INTEGER
-    let hold2 = Number.MIN_SAFE_INTEGER
-    let release1 = 0
-    let release2 = 0
-    for (let i = 0; i < prices.length; i++) {
-      let price = prices[i]
-      release2 = Math.max(release2, hold2 + price)
-      hold2 = Math.max(hold2, release1 - price)
-      release1 = Math.max(release1, hold1 + price)
-      hold1 = Math.max(hold1, price * -1)
+    var hold = []
+    var rele = []
+    hold.length = txns + 1
+    rele.length = txns + 1
+    for (var i = 0; i <= txns; ++i) {
+        hold[i] = Number.MIN_SAFE_INTEGER
+        rele[i] = 0
     }
-    return release2;
+    var cur
+    for (var i = 0; i < len; ++i) {
+        cur = prices[i]
+        for (var j = txns; j > 0; --j) {
+            rele[j] = Math.max(rele[j], hold[j] + cur)
+            hold[j] = Math.max(hold[j], rele[j - 1] - cur)
+        }
+    }
+    return rele[txns]
 }
 
 /**
