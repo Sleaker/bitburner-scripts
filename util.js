@@ -3,6 +3,7 @@ import { exploits, isExploitAvailable, runExploit } from './exploits.js';
 
 /**
  * @typedef {import('./types/NetscriptDefinitions').NS} NS
+ * @typedef {import('./types/NetscriptDefinitions').Server} Server
  */
 
 /**
