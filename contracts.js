@@ -158,7 +158,7 @@ function reduceIntervals(intervals) {
             final.unshift(int);
         }
     }
-    return final;
+    return final.reverse();
 }
 
 /**
