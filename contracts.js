@@ -65,12 +65,12 @@ export async function main(ns) {
                     break;
                 default:
             }
-            if (contract.solution) {
+            if (typeof(contract.solution) !== 'undefined') {
                 contract.result = ns.codingcontract.attempt(contract.solution, contract.filename, contract.hostname, { returnReward: true});
                 ns.print("Solved " + contract.filename + "  Result: " + contract.result);
             }
             else {
-                ns.print("No solution available for contract: " + contract.type);
+                ns.print("No solution available for contract: " + contract.type + " | " + contract.hostname + "/" + contract.filename);
             }
         }
         await ns.sleep(30000);
@@ -312,10 +312,10 @@ export function minimumSumTriangle(triangle) {
 
 /**
  * Finds the number of unique paths of an unobstructed grid of the given size, or given an obstructed grid.
- * @param {number[]} size
- * @param {obstacles[]} obstacleGrid
+ * @param {number[]|number[][]} data
+ * @param {NS} ns
  */
-export function uniquePaths(data) {
+export function uniquePaths(data, ns) {
     let grid = [];
     if (data.length == 2 && typeof(data[0]) === 'number') {
         // if this is a 1d array then the inputs are the size of an unobstructed grid
