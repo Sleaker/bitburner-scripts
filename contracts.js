@@ -20,6 +20,9 @@ export async function main(ns) {
 
         for (const contract of contracts) {
             switch (contract.type) {
+                case "Array Jumping Game":
+                    contract.solution = jump(contract.data);
+                    break;
                 case "Total Ways to Sum":
                     contract.solution = partition(contract.data);
                     break;
@@ -485,4 +488,16 @@ function mathHelper(answer, path, num, target, pos, evaluated, multed) {
             mathHelper(answer, path + '*' + cur, num, target, i + 1, evaluated - multed + multed * cur, multed * cur);
         }
     }
+}
+
+/**
+ * Finds if you can jump to the end of the array where each value in the array represents the MAXIMUM distance you can jump in the array
+ * @param {number[]} nums 
+ */
+function jump(nums) {
+    let nextMax = 0;
+    for (let i = 0; i < nums.length && i <= nextMax; i++) {
+        nextMax = Math.max(nextMax, i + nums[i]);
+    }
+    return (nextMax >= (nums.length - 1)) ? 1 : 0;
 }

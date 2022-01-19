@@ -243,6 +243,13 @@ async function doHacks(runners, targets, ns, logger) {
 				}
 			}
 		}
+		if (availableRunners > 0 && server.hostname === "home") {
+			let shareScript = ns.getRunningScript("share.js", server.hostname);
+			if (!shareScript) {
+				ns.print("Spinning up new share with leftover runners on home.");
+				ns.run("share.js", Math.ceil(availableRunners / 3));
+			}
+		}
 	}
 	// logger.info("End:   %j", {threads: [wantedGrowThreads, wantedHackThreads, wantedWeakenThreads]});
 }
