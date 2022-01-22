@@ -4,9 +4,8 @@
  * @typedef {import('./types/NetscriptDefinitions').Player} Player
  */
 
-
+import { numAvailableExploits } from './exploits.js';
 import { formatMoney } from './formatting.js';
-import { numAvailableExploits, isExploitAvailable, runExploit, exploits } from './exploits.js';
 
 /**
  * @class
@@ -93,7 +92,8 @@ export class Zombie {
 		this.server = ns.getServer(this.hostname);
 		this.hackEffect = calculateMaxMoneyHacked(this.server, player);
 		this.effect = (this.hackEffect * 100).toFixed(2);
-		this.hackThreads = Math.floor(35.82 / (this.hackEffect * 100)); // 35.82% per hack will give 30% final funds after 4 hacks
+		
+
 		/**
 		 * maximum number of threads that should be used to target this server for naive loops
 		 * @property
@@ -114,6 +114,11 @@ export class Zombie {
 		this.backdoor = this.server.backdoorInstalled;
 		this.xps = (calculateXp(this.server, player) / this.weakenTime).toFixed(2);
 		return this;
+	}
+
+	get hackThreads() {
+		let threads = Math.max(Math.floor(35.82 / (this.hackEffect * 100)), 1); // 35.82% per hack will give 30% final funds after 4 hacks
+		return threads === Number.POSITIVE_INFINITY ? 0 : threads;
 	}
 
 	/**
@@ -167,19 +172,6 @@ export class Zombie {
 		await ns.scp(files, this.hostname);
 	}
 
-	/**
-	 * @param {ns}
-	 * @param {Zombie} zombie 
-	 */
-	getRoot(ns) {
-		exploits.filter(exploit => isExploitAvailable(ns, exploit))
-			.map(exploit => exploit.substring(0, exploit.indexOf(".")))
-			.forEach(exploit => runExploit(ns, exploit, this.hostname));
-		ns.nuke(this.hostname);
-		this.updateStats(ns);
-		ns.print("Rooted server: " + this.hostname);
-		ns.tprintf("SUCCESS | Rooted server: %s", this.hostname);
-	}
 }
 
 /**

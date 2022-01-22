@@ -17,17 +17,16 @@ import { Logger } from './log';
 	ns.disableLog("getPurchasedServerCost");
 
 	// TODO: adjust
-	const maxPurchasedServers = 0;
-	const wantedRam = 2048;
+	const maxPurchasedServers = 12;
+	const wantedRam = 4096;
 	const cost = ns.getPurchasedServerCost(wantedRam);
 	// run the main script
-	while(true) {
-		// ns.tprint("Cost: " + formatMoney(cost));
+		ns.tprint("Cost: " + formatMoney(cost));
 		let nextServerNum = ns.getPurchasedServers().length;
 		while(nextServerNum < maxPurchasedServers && cost < ns.getPlayer().money) {
 			if (ns.purchaseServer("zombie-" + nextServerNum, wantedRam)) {
 				ns.print("Purchased new server: zombie-" + nextServerNum + " | " + wantedRam);
-				log.success("Purchased new server: zombie-%(num)s - %(ram)sM", { num: nextServerNum, ram: wantedRam});
+				log.success("Purchased new server: zombie-%(num)s - %(ram)sG", { num: nextServerNum, ram: wantedRam});
 				nextServerNum++;
 			} else {
 				// if we fail to buy a server break out.
@@ -38,8 +37,8 @@ import { Logger } from './log';
 		}
 		// TODO: find best way to analyze and purchase hacknet nodes.
 		
-		//TODO: make this purchase TOR + programs (requires Source file 4)
+		//TODO: make this purchase TOR + programs (requires Source file 4)?
 
-		await ns.sleep(30000);
-	}
+		// await ns.sleep(30000);
+	
 }

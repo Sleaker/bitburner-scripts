@@ -5,7 +5,6 @@
 import { Logger } from './log.js';
 import { findServers } from './util.js';
 import { compareZombie, Zombie } from './zombie.js';
-import { numAvailableExploits } from './exploits.js';
 
 let _serverLogger;
 /** @param {NS} ns **/
@@ -13,7 +12,7 @@ export async function main(ns) {
 	_serverLogger = new Logger(ns, false);
 	let HEADER_LENGTHS = {
 		hostname: 18, depth: 3, contracts: 2, level: 4, shouldCrack: 5, root: 5, backdoor: 5, ports: 2, 
-		money: 7, growth: 3, effect: 5, weak: 5, chance: 4, rating: 6, xps: 5, security: 4, parent: 18, faction: 0, maxTargetingThreads: 4
+		money: 7, growth: 3, effect: 5, weak: 5, chance: 4, rating: 6, xps: 5, security: 4, parent: 18, faction: 0, maxTargetingThreads: 5
 	};
 
 	let SERVER_HEADER = {
@@ -33,7 +32,7 @@ export async function main(ns) {
 		asc = true;
 		sort = sort.substring(0, sort.indexOf("-"));
 	}
-	_serverLogger.info("Available Exploits: %s", numAvailableExploits(ns));
+
 	_serverLogger.info("Starting scan with depth %i", depth);
 
 	SERVER_HEADER[sort] = (asc ? "-" : "+") + SERVER_HEADER[sort] + (asc ? "-" : "+");
