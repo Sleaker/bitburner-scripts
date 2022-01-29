@@ -12,10 +12,6 @@ import { Logger } from './log';
     let log = new Logger(ns, false);
     const file = ns.getOwnedSourceFiles()
         .find(file => file.n === 4);
-    if (!file || file.lvl < 1) {
-        log.error("Need access to Source File 4 before using this.");
-        ns.exit();
-    }
     
     let [hostname] = ns.args;
     if (!hostname) {
@@ -27,6 +23,12 @@ import { Logger } from './log';
         log.error("%s not found, unable to connect", hostname);
         ns.exit();
     }
+
+    if (!file || file.lvl < 1) {
+        log.info("Server-tree: %j", connectChain);
+        log.warn("Need access to Source File 4 to auto-connect with this script.");
+        ns.exit();
+    }
     for (const connector of connectChain) {
         if (!ns.connect(connector)) {
             ns.connect("home");
@@ -34,4 +36,8 @@ import { Logger } from './log';
             ns.exit();
         }
     }
+}
+
+export function autocomplete(data, args) {
+    return [...data.servers];
 }

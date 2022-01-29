@@ -5,4 +5,7 @@ export async function main(ns) {
 		exit;
 	}
 	await ns.grow(target);
+	for (const log of ns.getScriptLogs()) {
+		await ns.writePort(9, log.substring(log.indexOf(" ") + 1));
+	}
 }

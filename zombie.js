@@ -117,6 +117,9 @@ export class Zombie {
 	}
 
 	get hackThreads() {
+		if (this.maxMoney === 0) {
+			return 0;
+		}
 		let threads = Math.max(Math.floor(35.82 / (this.hackEffect * 100)), 1); // 35.82% per hack will give 30% final funds after 4 hacks
 		return threads === Number.POSITIVE_INFINITY ? 0 : threads;
 	}
@@ -125,7 +128,7 @@ export class Zombie {
 	 * (maxMoney ^ 1.25) * hackChance * hackEffect * (growth ^ 1.1)
 	 */
 	get currentRating() {
-		return (Math.pow(this.maxMoney, 1.25) * this.hackEffect * Math.pow(Math.min(this.growth, 100), 1.1) / this.weakenTime) / 1e3;
+		return this.root ? (Math.pow(this.maxMoney, 1.25) * this.hackEffect * Math.pow(Math.min(this.growth, 100), 1.1) / this.weakenTime) / 1e3 : 0;
 	}
 
 	get rating() {

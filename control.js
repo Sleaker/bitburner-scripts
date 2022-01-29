@@ -83,12 +83,14 @@ async function control(ns) {
 		}
 	}
 	let counter = 0;
-	// let targets = [{ zombie: potentialTargets[0], hostname: potentialTargets[0].hostname, setup: true, threadRatio: 1 }];
+
 	let threads = getThreadCounts(ns, runners, targets);
     ns.print("Starting up with total threads: -> " + threads.counts.maxThreads);
-	// logger.info("%(stage)s | Starting up against %(target)s using %(threads)d total threads.", 
-	// 	{ stage: targets[0].setup ? "SETUP" : "HACK", target: targets[0].hostname, threads: threads.counts.maxThreads });
+
 	while (true) {
+		while(ns.peek(9) !== "NULL PORT DATA") {
+			ns.print(ns.readPort(9));
+		}
 		for (const target of targets) {
 			target.updateStats(ns);
 			if (target.setup && target.isAtMinSecurity() && target.isAtMaxMoney()) {
@@ -96,7 +98,7 @@ async function control(ns) {
 				target.setup = false;
 			}
 
-			if (!target.setup && target.availableMoney < target.maxMoney * .15) {
+			if (!target.setup && target.root && target.availableMoney < target.maxMoney * .15) {
 				ns.print("-> temporarily stopping hacks <- " + target.hostname);
 				target.setup = true;
 			}
@@ -120,7 +122,7 @@ async function control(ns) {
 			for (const target of targets) {
 				if (target.root) {
 					await target.uploadFiles(ns, ["weakenloop.js", "weaken.js", "hack.js", "grow.js"]);
-		
+					
 					startupTargetScripts(ns, target);
 				}
 			}
@@ -135,28 +137,9 @@ async function control(ns) {
 }
 
 /**
- * 
- * @param {NS} ns 
- * @param {Zombie[]} oldTargets
- * @param {Server[]} runners 
+ * @param {ns}
+ * @param {Zombie} zombie 
  */
-function cleanupOldThreads(ns, oldTargets, runners) {
-	for (const target of oldTargets) {
-		for (const runner of runners) {
-			for (const scriptName of ["weaken.js", "grow.js",  "hack.js"]) {
-				let script = ns.getRunningScript(scriptName, runner.hostname, target.hostname);
-				if (script) {
-					ns.kill(scriptName, runner.hostname, target.hostname);
-				}
-			}
-		}
-	}
-}
-
-	/**
-	 * @param {ns}
-	 * @param {Zombie} zombie 
-	 */
 function getRoot(ns, zombie) {
 	exploits.filter(exploit => isExploitAvailable(ns, exploit))
 		.map(exploit => exploit.substring(0, exploit.indexOf(".")))
@@ -205,7 +188,7 @@ async function doHacks(runners, targets, ns, logger) {
 					// 	available: availableRunners,
 					// 	server: serverData } );
 				} else {
-					ns.print(server.hostname + " " + getRunningScriptLogs(ns, server, target.hostname, "weaken.js")[0] + " -> Money: " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney) + " -> " + target.currentSecurity);
+					ns.print(server.hostname + " weaken.js -> " + target.hostname + " -> Money: " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney) + " -> " + target.currentSecurity);
 					availableRunners -= toWeaken;
 					target.wantedWeakenThreads -= toWeaken;
 				}
@@ -220,7 +203,7 @@ async function doHacks(runners, targets, ns, logger) {
 				
 				await ns.sleep(5);
 				if (pid > 0) {
-					ns.print(server.hostname + " " + getRunningScriptLogs(ns, server, target.hostname, "grow.js")[0] + " -> Money: " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney) + " -> Sec: " + target.currentSecurity);
+					ns.print(server.hostname + " grow.js -> " + target.hostname + " -> Money: " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney) + " -> Sec: " + target.currentSecurity);
 					availableRunners -= toGrow;
 					target.wantedGrowThreads -= toGrow;
 				}
@@ -234,7 +217,7 @@ async function doHacks(runners, targets, ns, logger) {
 				
 				await ns.sleep(5);
 				if (pid > 0) {
-					ns.print(server.hostname + " " + getRunningScriptLogs(ns, server, target.hostname, "hack.js")[0] + " <- Money " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney) + " -> " + target.currentSecurity);
+					ns.print(server.hostname + " hack.js -> " + target.hostname + " <- Money " + Formatter.formatMoney(target.availableMoney) + " / " + Formatter.formatMoney(target.maxMoney) + " -> " + target.currentSecurity);
 					availableRunners -= toHack;
 					target.wantedHackThreads -= toHack;
 				}
@@ -248,16 +231,6 @@ async function doHacks(runners, targets, ns, logger) {
 			}
 		}
 	}
-}
-
-/**
- * @param {Server} server
- * @param {string} targetHostname
- * @param {string} scriptName
- */
-function getRunningScriptLogs(ns, server, targetHostname, scriptName) {
-	let script = ns.getRunningScript(scriptName, server.hostname, targetHostname);
-	return script ? script.logs : [];
 }
 
 /**
@@ -320,7 +293,7 @@ function getThreadCounts(ns, runners, targets) {
 		target.hackRunners = 0;
 		target.weakenRunners = 0;
 		target.growRate = target.setup ? target.shouldGrow ? .9 : 0 : .84;
-		target.hackRate = target.setup ? 0 : .4;
+		target.hackRate = target.setup ? 0 : .04;
 	}
 	// count the number of already running
 	for (const server of runners) {
@@ -371,7 +344,7 @@ function getThreadCounts(ns, runners, targets) {
 function startupTargetScripts(ns, target) {
 	// if this is early game, run oldschool single target hacks against harakiri-sushi
 	const earlyThreads = Math.floor(target.memory / 2.2);
-	if (ns.getPlayer().money < 5_000_000_000 && earlyThreads > 0) {
+	if (ns.getPlayer().money < 5_000_000_000 && earlyThreads > 0 && ns.getServer("harakiri-sushi").hasAdminRights) {
 		if (!ns.isRunning("earlyhack.js", target.hostname)) {
 			ns.killall(target.hostname);
 			ns.exec("earlyhack.js", target.hostname, earlyThreads);

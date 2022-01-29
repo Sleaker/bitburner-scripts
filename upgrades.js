@@ -17,8 +17,8 @@ import { Logger } from './log';
 	ns.disableLog("getPurchasedServerCost");
 
 	// TODO: adjust
-	const maxPurchasedServers = 12;
-	const wantedRam = 4096;
+	const maxPurchasedServers = 8;
+	const wantedRam = 8192;
 	const cost = ns.getPurchasedServerCost(wantedRam);
 	// run the main script
 		ns.tprint("Cost: " + formatMoney(cost));
